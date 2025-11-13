@@ -6,7 +6,7 @@ categories: [Writeups, Vulnlab]
 tags: [Active Directory, NTLM Relay, RBCD, LAPS, Privilege Escalation, Windows]
 difficulty: Medium
 image:
-  path: assets/lib/reflection.png
+  path: assets/img/reflection/reflection.png
   alt: Reflection Vulnlab Banner
 ---
 
@@ -67,7 +67,7 @@ Pretty standard AD environment. DC has MSSQL running, which is interesting. Let'
 
 We started by checking out SMB shares on MS01 with anonymous access. Found something called `staging`:
 
-![MS01 shares](assets\lib\screen1.png)
+![MS01 shares](assets\img\reflection\1.png)
 
 ```
 └─# smbclient.py reflection.vl/aa:@MS01.reflection.vl
@@ -99,19 +99,19 @@ db=staging
 
 These worked on the MSSQL instance running on MS01!
 
-![mssql creds](assets\lib\screen2.png)
+![mssql creds](assets\img\reflection\2.png)
 
 ### NTLM Relay Attack
 
 We could use `xp_dirtree` to capture the service account hash, but cracking it didn't work out. Time for plan B: NTLM relay.
 
-![mssql](assets\lib\screen3.png)
+![mssql](assets\img\reflection\3.png)
 
-![Responder](assets\lib\screen4.png)
+![Responder](assets\img\reflection\5.png)
 
 First, we needed to check if SMB signing was disabled on the targets:
 
-![SMB signing check](assets\lib\screen5.png)
+![SMB signing check](assets\img\reflection\6.png)
 
 Perfect! All three machines have SMB signing disabled. Now we could set up ntlmrelayx with SOCKS support to relay the authentication to the DC:
 
@@ -188,7 +188,7 @@ db=prod
 
 These production credentials gave us access to the MSSQL instance on the DC:
 
-![mssql 2](assets\lib\screen6.png)
+![mssql 2](assets\img\reflection\7.png)
 
 ```
 ┌──(root㉿kali)-[/opt/reflection]
@@ -216,7 +216,7 @@ id   name              password
 
 Sweet! Got two domain user credentials. Let's verify they work:
 
-![Domain auth](assets\lib\screen7.png)
+![Domain auth](assets\img\reflection\8.png)
 
 Both accounts are valid domain users. Time to see what they can do.
 
@@ -236,9 +236,11 @@ rusthound-ce -d reflection.vl -z -u 'dorothy.rose' -p 'hC_fny3OK9glSJ'
 
 Looking at the ACLs in BloodHound, we found that **abbie.smith** has **GenericAll** permissions on **MS01**:
 
-![Domain auth](assets\lib\screen9.png)
+![Domain auth](assets\img\reflection\10.png)
 
 GenericAll means we can read the LAPS password for MS01.
+
+
 
 Now we can read the first flag 
 
@@ -249,13 +251,16 @@ Now we can read the first flag
 └─# nxc ldap 10.10.197.69 -u 'abbie.smith' -p 'CMe1x+nlRaaWEw' -M laps
 ```
 
-![LAPS](assets\lib\laps.png)
-
-
-![flag](assets\lib\flag1.png)
-
+![LAPS](assets\img\reflection\11.png)
 
 Got the local administrator password for MS01: `H447.++h6g5}xi`
+
+Now we can read the first flag 
+
+![flag](assets\img\reflection\17.png)
+
+
+
 
 ### Dumping MS01 Credentials
 
@@ -287,7 +292,7 @@ SMB         10.10.197.70    445    MS01             [SYSTEM][CREDENTIAL] Domain:
 
 Back to BloodHound to see what Georgia.Price can do. She has **GenericAll** on **WS01**:
 
-![Domain auth](assets\lib\ace.png)
+![Domain auth](assets\img\reflection\13.png)
 
 There's no LAPS on WS01, so I'll need to use a different approach. RBCD attack it is!
 
@@ -357,13 +362,13 @@ Found another set of credentials: **Rhys.Garner:knh1gJ8Xmeq+uP**
 
 With the password `knh1gJ8Xmeq+uP`, we tried spraying it across all domain users:
 
-![Pwned](assets\lib\pwned.png)
+![Pwned](assets\img\reflection\16.png)
 
 The password was reused by **dom_rgarner**, who turned out to be a Domain Admin!
 
 We get the root flag 
 
-![Root](assets\lib\root.png)
+![Root](assets\img\reflection\18.png)
 
 
 Thanks for reading!
