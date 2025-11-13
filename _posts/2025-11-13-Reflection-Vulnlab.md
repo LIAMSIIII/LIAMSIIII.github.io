@@ -5,7 +5,7 @@ date: 2025-11-13
 categories: [Writeups, Vulnlab]
 tags: [Active Directory, NTLM Relay, RBCD, LAPS, Privilege Escalation, Windows]
 difficulty: Medium
-author: Liamsi
+author: LIAMSIIII
 image:
   path: assets\lib\reflection.png
   alt: Reflection Vulnlab Banner
